@@ -49,6 +49,10 @@ function styleSheetsCompat( doc ) {
 			return;
 		}
 
+		if ( ! ownerNode.id ) {
+			return;
+		}
+
 		// Don't try to add the reset styles, which were removed as a dependency
 		// from `edit-blocks` for the iframe since we don't need to reset admin
 		// styles.
