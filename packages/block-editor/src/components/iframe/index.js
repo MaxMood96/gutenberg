@@ -259,7 +259,6 @@ function Iframe( { contentRef, children, head, ...props }, ref ) {
 			ref={ useMergeRefs( [ ref, setRef ] ) }
 			tabIndex="0"
 			title={ __( 'Editor canvas' ) }
-			name="editor-canvas"
 		>
 			{ iframeDocument &&
 				createPortal(
