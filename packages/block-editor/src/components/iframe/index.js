@@ -72,8 +72,7 @@ function styleSheetsCompat( doc ) {
 			console.error(
 				`Stylesheet ${ ownerNode.id } was not properly added.
 For blocks, use the block API's style (https://developer.wordpress.org/block-editor/reference-guides/block-api/block-metadata/#style) or editorStyle (https://developer.wordpress.org/block-editor/reference-guides/block-api/block-metadata/#editor-style).
-For themes, use add_editor_style (https://developer.wordpress.org/block-editor/how-to-guides/themes/theme-support/#editor-styles).`,
-				ownerNode
+For themes, use add_editor_style (https://developer.wordpress.org/block-editor/how-to-guides/themes/theme-support/#editor-styles).`
 			);
 			doc.head.appendChild( ownerNode.cloneNode( true ) );
 		}

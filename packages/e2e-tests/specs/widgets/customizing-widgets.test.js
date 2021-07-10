@@ -18,6 +18,10 @@ import {
 // eslint-disable-next-line no-restricted-imports
 import { find } from 'puppeteer-testing-library';
 
+const twentyTwentyError = `Stylesheet twentytwenty-block-editor-styles-css was not properly added.
+For blocks, use the block API's style (https://developer.wordpress.org/block-editor/reference-guides/block-api/block-metadata/#style) or editorStyle (https://developer.wordpress.org/block-editor/reference-guides/block-api/block-metadata/#editor-style).
+For themes, use add_editor_style (https://developer.wordpress.org/block-editor/how-to-guides/themes/theme-support/#editor-styles).`;
+
 describe( 'Widgets Customizer', () => {
 	beforeEach( async () => {
 		await deleteAllWidgets();
@@ -148,6 +152,8 @@ describe( 'Widgets Customizer', () => {
 		expect( console ).toHaveWarned(
 			"The page delivered both an 'X-Frame-Options' header and a 'Content-Security-Policy' header with a 'frame-ancestors' directive. Although the 'X-Frame-Options' header alone would have blocked embedding, it has been ignored."
 		);
+
+		expect( console ).toHaveErrored( twentyTwentyError );
 	} );
 
 	it( 'should open the inspector panel', async () => {
@@ -237,6 +243,8 @@ describe( 'Widgets Customizer', () => {
 		expect( console ).toHaveWarned(
 			"The page delivered both an 'X-Frame-Options' header and a 'Content-Security-Policy' header with a 'frame-ancestors' directive. Although the 'X-Frame-Options' header alone would have blocked embedding, it has been ignored."
 		);
+
+		expect( console ).toHaveErrored( twentyTwentyError );
 	} );
 
 	it( 'should handle the inserter outer section', async () => {
@@ -348,6 +356,8 @@ describe( 'Widgets Customizer', () => {
 		expect( console ).toHaveWarned(
 			"The page delivered both an 'X-Frame-Options' header and a 'Content-Security-Policy' header with a 'frame-ancestors' directive. Although the 'X-Frame-Options' header alone would have blocked embedding, it has been ignored."
 		);
+
+		expect( console ).toHaveErrored( twentyTwentyError );
 	} );
 
 	it( 'should move focus to the block', async () => {
@@ -447,6 +457,8 @@ describe( 'Widgets Customizer', () => {
 		expect( console ).toHaveWarned(
 			"The page delivered both an 'X-Frame-Options' header and a 'Content-Security-Policy' header with a 'frame-ancestors' directive. Although the 'X-Frame-Options' header alone would have blocked embedding, it has been ignored."
 		);
+
+		expect( console ).toHaveErrored( twentyTwentyError );
 	} );
 
 	it( 'should clear block selection', async () => {
@@ -513,6 +525,8 @@ describe( 'Widgets Customizer', () => {
 		expect( console ).toHaveWarned(
 			"The page delivered both an 'X-Frame-Options' header and a 'Content-Security-Policy' header with a 'frame-ancestors' directive. Although the 'X-Frame-Options' header alone would have blocked embedding, it has been ignored."
 		);
+
+		expect( console ).toHaveErrored( twentyTwentyError );
 	} );
 
 	it( 'should handle legacy widgets', async () => {
@@ -699,6 +713,8 @@ describe( 'Widgets Customizer', () => {
 		expect( console ).toHaveWarned(
 			"The page delivered both an 'X-Frame-Options' header and a 'Content-Security-Policy' header with a 'frame-ancestors' directive. Although the 'X-Frame-Options' header alone would have blocked embedding, it has been ignored."
 		);
+
+		expect( console ).toHaveErrored( twentyTwentyError );
 	} );
 
 	it( 'should move (inner) blocks to another sidebar', async () => {
@@ -762,6 +778,8 @@ describe( 'Widgets Customizer', () => {
 		expect( console ).toHaveWarned(
 			"The page delivered both an 'X-Frame-Options' header and a 'Content-Security-Policy' header with a 'frame-ancestors' directive. Although the 'X-Frame-Options' header alone would have blocked embedding, it has been ignored."
 		);
+
+		expect( console ).toHaveErrored( twentyTwentyError );
 	} );
 } );
 
