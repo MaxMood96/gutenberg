@@ -39,11 +39,11 @@
 		"execa": "^4.0.2",
 		"fast-glob": "^3.2.7",
 		"inquirer": "^7.1.0",
-		"make-dir": "^3.0.0",
+		"make-dir": "^4.0.0",
 		"mustache": "^4.0.0",
 		"npm-package-arg": "^8.1.5",
 		"rimraf": "^3.0.2",
-		"write-pkg": "^4.0.0"
+		"write-pkg": "^5.0.0"
 	},
 	"publishConfig": {
 		"access": "public"
