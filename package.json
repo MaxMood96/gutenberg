@@ -259,7 +259,7 @@
 		"typescript": "5.4.5",
 		"uglify-js": "3.13.7",
 		"uuid": "9.0.1",
-		"webdriverio": "8.16.20",
+		"webdriverio": "9.0.0",
 		"webpack": "5.88.2",
 		"webpack-bundle-analyzer": "4.9.1",
 		"worker-farm": "1.7.0"
