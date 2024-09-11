@@ -251,7 +251,7 @@
 		"snapshot-diff": "0.10.0",
 		"source-map-loader": "3.0.0",
 		"sprintf-js": "1.1.1",
-		"storybook": "7.6.15",
+		"storybook": "8.2.0",
 		"storybook-source-link": "2.0.9",
 		"strip-json-comments": "5.0.0",
 		"style-loader": "3.2.1",
