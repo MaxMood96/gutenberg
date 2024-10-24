@@ -11,25 +11,26 @@ import {
 	Composite,
 	privateApis as componentsPrivateApis,
 } from '@wordpress/components';
-import { __, sprintf } from '@wordpress/i18n';
-import {
-	getCategories,
-	getBlockType,
-	getBlockTypes,
-	getBlockFromExample,
-	createBlock,
-} from '@wordpress/blocks';
+import { __, _x, sprintf } from '@wordpress/i18n';
 import {
 	BlockList,
 	privateApis as blockEditorPrivateApis,
 	store as blockEditorStore,
+	useSettings,
 	__unstableEditorStyles as EditorStyles,
 	__unstableIframe as Iframe,
+	__experimentalUseMultipleOriginColorsAndGradients as useMultipleOriginColorsAndGradients,
 } from '@wordpress/block-editor';
 import { privateApis as editorPrivateApis } from '@wordpress/editor';
 import { useSelect } from '@wordpress/data';
 import { useResizeObserver } from '@wordpress/compose';
-import { useMemo, useState, memo, useContext } from '@wordpress/element';
+import {
+	useMemo,
+	useState,
+	memo,
+	useContext,
+	useEffect,
+} from '@wordpress/element';
 import { ENTER, SPACE } from '@wordpress/keycodes';
 
 /**
@@ -37,6 +38,12 @@ import { ENTER, SPACE } from '@wordpress/keycodes';
  */
 import { unlock } from '../../lock-unlock';
 import EditorCanvasContainer from '../editor-canvas-container';
+import { STYLE_BOOK_IFRAME_STYLES } from './constants';
+import {
+	getExamplesByCategory,
+	getTopLevelStyleBookCategories,
+} from './categories';
+import { getExamples } from './examples';
 
 const {
 	ExperimentalBlockEditorProvider,
@@ -48,124 +55,83 @@ const { mergeBaseAndUserConfigs } = unlock( editorPrivateApis );
 
 const { Tabs } = unlock( componentsPrivateApis );
 
-// The content area of the Style Book is rendered within an iframe so that global styles
-// are applied to elements within the entire content area. To support elements that are
-// not part of the block previews, such as headings and layout for the block previews,
-// additional CSS rules need to be passed into the iframe. These are hard-coded below.
-// Note that button styles are unset, and then focus rules from the `Button` component are
-// applied to the `button` element, targeted via `.edit-site-style-book__example`.
-// This is to ensure that browser default styles for buttons are not applied to the previews.
-const STYLE_BOOK_IFRAME_STYLES = `
-	.edit-site-style-book__examples {
-		max-width: 900px;
-		margin: 0 auto;
-	}
-
-	.edit-site-style-book__example {
-		border-radius: 2px;
-		cursor: pointer;
-		display: flex;
-		flex-direction: column;
-		gap: 40px;
-		margin-bottom: 40px;
-		padding: 16px;
-		width: 100%;
-		box-sizing: border-box;
-		scroll-margin-top: 32px;
-		scroll-margin-bottom: 32px;
-	}
-
-	.edit-site-style-book__example.is-selected {
-		box-shadow: 0 0 0 1px var(--wp-components-color-accent, var(--wp-admin-theme-color, #007cba));
-	}
-
-	.edit-site-style-book__example:focus:not(:disabled) {
-		box-shadow: 0 0 0 var(--wp-admin-border-width-focus) var(--wp-components-color-accent, var(--wp-admin-theme-color, #007cba));
-		outline: 3px solid transparent;
-	}
-
-	.edit-site-style-book__examples.is-wide .edit-site-style-book__example {
-		flex-direction: row;
-	}
-
-	.edit-site-style-book__example-title {
-		font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-		font-size: 11px;
-		font-weight: 500;
-		line-height: normal;
-		margin: 0;
-		text-align: left;
-		text-transform: uppercase;
-	}
-
-	.edit-site-style-book__examples.is-wide .edit-site-style-book__example-title {
-		text-align: right;
-		width: 120px;
-	}
-
-	.edit-site-style-book__example-preview {
-		width: 100%;
-	}
-
-	.edit-site-style-book__example-preview .block-editor-block-list__insertion-point,
-	.edit-site-style-book__example-preview .block-list-appender {
-		display: none;
-	}
-
-	.edit-site-style-book__example-preview .is-root-container > .wp-block:first-child {
-		margin-top: 0;
-	}
-	.edit-site-style-book__example-preview .is-root-container > .wp-block:last-child {
-		margin-bottom: 0;
-	}
-`;
-
 function isObjectEmpty( object ) {
 	return ! object || Object.keys( object ).length === 0;
 }
 
-function getExamples() {
-	const nonHeadingBlockExamples = getBlockTypes()
-		.filter( ( blockType ) => {
-			const { name, example, supports } = blockType;
-			return (
-				name !== 'core/heading' &&
-				!! example &&
-				supports.inserter !== false
-			);
-		} )
-		.map( ( blockType ) => ( {
-			name: blockType.name,
-			title: blockType.title,
-			category: blockType.category,
-			blocks: getBlockFromExample( blockType.name, blockType.example ),
-		} ) );
+/**
+ * Retrieves colors, gradients, and duotone filters from Global Styles.
+ * The inclusion of default (Core) palettes is controlled by the relevant
+ * theme.json property e.g. defaultPalette, defaultGradients, defaultDuotone.
+ *
+ * @return {Object} Object containing properties for each type of palette.
+ */
+function useMultiOriginPalettes() {
+	const { colors, gradients } = useMultipleOriginColorsAndGradients();
 
-	const isHeadingBlockRegistered = !! getBlockType( 'core/heading' );
+	// Add duotone filters to the palettes data.
+	const [
+		shouldDisplayDefaultDuotones,
+		customDuotones,
+		themeDuotones,
+		defaultDuotones,
+	] = useSettings(
+		'color.defaultDuotone',
+		'color.duotone.custom',
+		'color.duotone.theme',
+		'color.duotone.default'
+	);
 
-	if ( ! isHeadingBlockRegistered ) {
-		return nonHeadingBlockExamples;
-	}
+	const palettes = useMemo( () => {
+		const result = { colors, gradients, duotones: [] };
 
-	// Use our own example for the Heading block so that we can show multiple
-	// heading levels.
-	const headingsExample = {
-		name: 'core/heading',
-		title: __( 'Headings' ),
-		category: 'text',
-		blocks: [ 1, 2, 3, 4, 5, 6 ].map( ( level ) => {
-			return createBlock( 'core/heading', {
-				content: sprintf(
-					// translators: %d: heading level e.g: "1", "2", "3"
-					__( 'Heading %d' ),
-					level
+		if ( themeDuotones && themeDuotones.length ) {
+			result.duotones.push( {
+				name: _x(
+					'Theme',
+					'Indicates these duotone filters come from the theme.'
 				),
-				level,
+				slug: 'theme',
+				duotones: themeDuotones,
 			} );
-		} ),
-	};
+		}
 
-	return [ headingsExample, ...nonHeadingBlockExamples ];
+		if (
+			shouldDisplayDefaultDuotones &&
+			defaultDuotones &&
+			defaultDuotones.length
+		) {
+			result.duotones.push( {
+				name: _x(
+					'Default',
+					'Indicates these duotone filters come from WordPress.'
+				),
+				slug: 'default',
+				duotones: defaultDuotones,
+			} );
+		}
+		if ( customDuotones && customDuotones.length ) {
+			result.duotones.push( {
+				name: _x(
+					'Custom',
+					'Indicates these doutone filters are created by the user.'
+				),
+				slug: 'custom',
+				duotones: customDuotones,
+			} );
+		}
+
+		return result;
+	}, [
+		colors,
+		gradients,
+		customDuotones,
+		themeDuotones,
+		defaultDuotones,
+		shouldDisplayDefaultDuotones,
+	] );
+
+	return palettes;
 }
 
 function StyleBook( {
@@ -181,22 +147,23 @@ function StyleBook( {
 	const [ resizeObserver, sizes ] = useResizeObserver();
 	const [ textColor ] = useGlobalStyle( 'color.text' );
 	const [ backgroundColor ] = useGlobalStyle( 'color.background' );
-	const [ examples ] = useState( getExamples );
+	const colors = useMultiOriginPalettes();
+	const [ examples, setExamples ] = useState( () => getExamples( colors ) );
 	const tabs = useMemo(
 		() =>
-			getCategories()
-				.filter( ( category ) =>
-					examples.some(
-						( example ) => example.category === category.slug
-					)
+			getTopLevelStyleBookCategories().filter( ( category ) =>
+				examples.some(
+					( example ) => example.category === category.slug
 				)
-				.map( ( category ) => ( {
-					name: category.slug,
-					title: category.title,
-					icon: category.icon,
-				} ) ),
+			),
 		[ examples ]
 	);
+
+	// Ensure color examples are kept in sync with Global Styles palette changes.
+	useEffect( () => {
+		setExamples( getExamples( colors ) );
+	}, [ colors ] );
+
 	const { base: baseConfig } = useContext( GlobalStylesContext );
 
 	const mergedConfig = useMemo( () => {
@@ -214,7 +181,10 @@ function StyleBook( {
 	);
 
 	const settings = useMemo(
-		() => ( { ...originalSettings, __unstableIsPreviewMode: true } ),
+		() => ( {
+			...originalSettings,
+			isPreviewMode: true,
+		} ),
 		[ originalSettings ]
 	);
 
@@ -243,37 +213,38 @@ function StyleBook( {
 			>
 				{ resizeObserver }
 				{ showTabs ? (
-					<div className="edit-site-style-book__tabs">
-						<Tabs>
+					<Tabs>
+						<div className="edit-site-style-book__tablist-container">
 							<Tabs.TabList>
 								{ tabs.map( ( tab ) => (
 									<Tabs.Tab
-										tabId={ tab.name }
-										key={ tab.name }
+										tabId={ tab.slug }
+										key={ tab.slug }
 									>
 										{ tab.title }
 									</Tabs.Tab>
 								) ) }
 							</Tabs.TabList>
-							{ tabs.map( ( tab ) => (
-								<Tabs.TabPanel
-									key={ tab.name }
-									tabId={ tab.name }
-									focusable={ false }
-								>
-									<StyleBookBody
-										category={ tab.name }
-										examples={ examples }
-										isSelected={ isSelected }
-										onSelect={ onSelect }
-										settings={ settings }
-										sizes={ sizes }
-										title={ tab.title }
-									/>
-								</Tabs.TabPanel>
-							) ) }
-						</Tabs>
-					</div>
+						</div>
+						{ tabs.map( ( tab ) => (
+							<Tabs.TabPanel
+								key={ tab.slug }
+								tabId={ tab.slug }
+								focusable={ false }
+								className="edit-site-style-book__tabpanel"
+							>
+								<StyleBookBody
+									category={ tab.slug }
+									examples={ examples }
+									isSelected={ isSelected }
+									onSelect={ onSelect }
+									settings={ settings }
+									sizes={ sizes }
+									title={ tab.title }
+								/>
+							</Tabs.TabPanel>
+						) ) }
+					</Tabs>
 				) : (
 					<StyleBookBody
 						examples={ examples }
@@ -329,10 +300,6 @@ const StyleBookBody = ( {
 		readonly: true,
 	};
 
-	const buttonModeStyles = onClick
-		? 'body { cursor: pointer; } body * { pointer-events: none; }'
-		: '';
-
 	return (
 		<Iframe
 			className={ clsx( 'edit-site-style-book__iframe', {
@@ -345,14 +312,9 @@ const StyleBookBody = ( {
 		>
 			<EditorStyles styles={ settings.styles } />
 			<style>
-				{
-					// Forming a "block formatting context" to prevent margin collapsing.
-					// @see https://developer.mozilla.org/en-US/docs/Web/Guide/CSS/Block_formatting_context
-					`.is-root-container { display: flow-root; }
-						body { position: relative; padding: 32px !important; }` +
-						STYLE_BOOK_IFRAME_STYLES +
-						buttonModeStyles
-				}
+				{ STYLE_BOOK_IFRAME_STYLES }
+				{ !! onClick &&
+					'body { cursor: pointer; } body * { pointer-events: none; }' }
 			</style>
 			<Examples
 				className={ clsx( 'edit-site-style-book__examples', {
@@ -379,6 +341,16 @@ const StyleBookBody = ( {
 
 const Examples = memo(
 	( { className, examples, category, label, isSelected, onSelect } ) => {
+		const categoryDefinition = category
+			? getTopLevelStyleBookCategories().find(
+					( _category ) => _category.slug === category
+			  )
+			: null;
+
+		const filteredExamples = categoryDefinition
+			? getExamplesByCategory( categoryDefinition, examples )
+			: { examples };
+
 		return (
 			<Composite
 				orientation="vertical"
@@ -386,15 +358,13 @@ const Examples = memo(
 				aria-label={ label }
 				role="grid"
 			>
-				{ examples
-					.filter( ( example ) =>
-						category ? example.category === category : true
-					)
-					.map( ( example ) => (
+				{ !! filteredExamples?.examples?.length &&
+					filteredExamples.examples.map( ( example ) => (
 						<Example
 							key={ example.name }
 							id={ `example-${ example.name }` }
 							title={ example.title }
+							content={ example.content }
 							blocks={ example.blocks }
 							isSelected={ isSelected( example.name ) }
 							onClick={ () => {
@@ -402,12 +372,51 @@ const Examples = memo(
 							} }
 						/>
 					) ) }
+				{ !! filteredExamples?.subcategories?.length &&
+					filteredExamples.subcategories.map( ( subcategory ) => (
+						<Composite.Group
+							className="edit-site-style-book__subcategory"
+							key={ `subcategory-${ subcategory.slug }` }
+						>
+							<Composite.GroupLabel>
+								<h2 className="edit-site-style-book__subcategory-title">
+									{ subcategory.title }
+								</h2>
+							</Composite.GroupLabel>
+							<Subcategory
+								examples={ subcategory.examples }
+								isSelected={ isSelected }
+								onSelect={ onSelect }
+							/>
+						</Composite.Group>
+					) ) }
 			</Composite>
 		);
 	}
 );
 
-const Example = ( { id, title, blocks, isSelected, onClick } ) => {
+const Subcategory = ( { examples, isSelected, onSelect } ) => {
+	return (
+		!! examples?.length &&
+		examples.map( ( example ) => (
+			<Example
+				key={ example.name }
+				id={ `example-${ example.name }` }
+				title={ example.title }
+				content={ example.content }
+				blocks={ example.blocks }
+				isSelected={ isSelected( example.name ) }
+				onClick={ () => {
+					onSelect?.( example.name );
+				} }
+			/>
+		) )
+	);
+};
+
+const disabledExamples = [ 'example-duotones' ];
+
+const Example = ( { id, title, blocks, isSelected, onClick, content } ) => {
 	const originalSettings = useSelect(
 		( select ) => select( blockEditorStore ).getSettings(),
 		[]
@@ -416,7 +425,7 @@ const Example = ( { id, title, blocks, isSelected, onClick } ) => {
 		() => ( {
 			...originalSettings,
 			focusMode: false, // Disable "Spotlight mode".
-			__unstableIsPreviewMode: true,
+			isPreviewMode: true,
 		} ),
 		[ originalSettings ]
 	);
@@ -427,12 +436,20 @@ const Example = ( { id, title, blocks, isSelected, onClick } ) => {
 		[ blocks ]
 	);
 
+	const disabledProps = disabledExamples.includes( id )
+		? {
+				disabled: true,
+				accessibleWhenDisabled: true,
+		  }
+		: {};
+
 	return (
 		<div role="row">
 			<div role="gridcell">
 				<Composite.Item
 					className={ clsx( 'edit-site-style-book__example', {
 						'is-selected': isSelected,
+						'is-disabled-example': !! disabledProps?.disabled,
 					} ) }
 					id={ id }
 					aria-label={ sprintf(
@@ -443,6 +460,7 @@ const Example = ( { id, title, blocks, isSelected, onClick } ) => {
 					render={ <div /> }
 					role="button"
 					onClick={ onClick }
+					{ ...disabledProps }
 				>
 					<span className="edit-site-style-book__example-title">
 						{ title }
@@ -452,12 +470,17 @@ const Example = ( { id, title, blocks, isSelected, onClick } ) => {
 						aria-hidden
 					>
 						<Disabled className="edit-site-style-book__example-preview__content">
-							<ExperimentalBlockEditorProvider
-								value={ renderedBlocks }
-								settings={ settings }
-							>
-								<BlockList renderAppender={ false } />
-							</ExperimentalBlockEditorProvider>
+							{ content ? (
+								content
+							) : (
+								<ExperimentalBlockEditorProvider
+									value={ renderedBlocks }
+									settings={ settings }
+								>
+									<EditorStyles />
+									<BlockList renderAppender={ false } />
+								</ExperimentalBlockEditorProvider>
+							) }
 						</Disabled>
 					</div>
 				</Composite.Item>

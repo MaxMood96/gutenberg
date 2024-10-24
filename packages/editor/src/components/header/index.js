@@ -1,6 +1,7 @@
 /**
  * WordPress dependencies
  */
+import { store as blockEditorStore } from '@wordpress/block-editor';
 import { useSelect } from '@wordpress/data';
 import { useMediaQuery, useViewportMatch } from '@wordpress/compose';
 import { __unstableMotion as motion } from '@wordpress/components';
@@ -11,6 +12,7 @@ import { PinnedItems } from '@wordpress/interface';
 /**
  * Internal dependencies
  */
+import CollabSidebar from '../collab-sidebar';
 import BackButton, { useHasBackButton } from './back-button';
 import CollapsibleBlockToolbar from '../collapsible-block-toolbar';
 import DocumentBar from '../document-bar';
@@ -52,33 +54,45 @@ function Header( {
 	const isLargeViewport = useViewportMatch( 'medium' );
 	const isTooNarrowForDocumentBar = useMediaQuery( '(max-width: 403px)' );
 	const {
+		postType,
 		isTextEditor,
 		isPublishSidebarOpened,
 		showIconLabels,
 		hasFixedToolbar,
+		hasBlockSelection,
 		isNestedEntity,
 	} = useSelect( ( select ) => {
 		const { get: getPreference } = select( preferencesStore );
 		const {
 			getEditorMode,
 			getEditorSettings,
+			getCurrentPostType,
 			isPublishSidebarOpened: _isPublishSidebarOpened,
 		} = select( editorStore );
 
 		return {
+			postType: getCurrentPostType(),
 			isTextEditor: getEditorMode() === 'text',
 			isPublishSidebarOpened: _isPublishSidebarOpened(),
 			showIconLabels: getPreference( 'core', 'showIconLabels' ),
 			hasFixedToolbar: getPreference( 'core', 'fixedToolbar' ),
+			hasBlockSelection:
+				!! select( blockEditorStore ).getBlockSelectionStart(),
 			isNestedEntity:
 				!! getEditorSettings().onNavigateToPreviousEntityRecord,
 		};
 	}, [] );
 
+	const canBeZoomedOut = [ 'post', 'page', 'wp_template' ].includes(
+		postType
+	);
+
 	const [ isBlockToolsCollapsed, setIsBlockToolsCollapsed ] =
 		useState( true );
 
-	const hasCenter = isBlockToolsCollapsed && ! isTooNarrowForDocumentBar;
+	const hasCenter =
+		( ! hasBlockSelection || isBlockToolsCollapsed ) &&
+		! isTooNarrowForDocumentBar;
 	const hasBackButton = useHasBackButton();
 	/*
 	 * The edit-post-header classname is only kept for backward compatability
@@ -135,7 +149,9 @@ function Header( {
 					<PostSavedState forceIsDirty={ forceIsDirty } />
 				) }
 
-				{ isEditorIframed && isWideViewport && <ZoomOutToggle /> }
+				{ canBeZoomedOut && isEditorIframed && isWideViewport && (
+					<ZoomOutToggle disabled={ forceDisableBlockTools } />
+				) }
 
 				<PreviewDropdown
 					forceIsAutosaveable={ forceIsDirty }
@@ -159,6 +175,7 @@ function Header( {
 						}
 					/>
 				) }
+				<CollabSidebar />
 
 				{ customSaveButton }
 				<MoreMenu />
