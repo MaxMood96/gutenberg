@@ -124,7 +124,7 @@
 		"@storybook/addon-toolbars": "7.6.15",
 		"@storybook/addon-viewport": "7.6.15",
 		"@storybook/react": "7.6.15",
-		"@storybook/react-webpack5": "7.6.15",
+		"@storybook/react-webpack5": "8.4.0",
 		"@storybook/source-loader": "7.6.15",
 		"@storybook/theming": "7.6.15",
 		"@testing-library/jest-dom": "5.16.5",
