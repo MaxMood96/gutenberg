@@ -174,7 +174,7 @@
 		"toposort": "2.0.2",
 		"typescript": "5.7.2",
 		"uuid": "9.0.1",
-		"webdriverio": "8.16.20",
+		"webdriverio": "9.0.0",
 		"webpack": "5.97.0",
 		"webpack-bundle-analyzer": "4.9.1"
 	},
