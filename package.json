@@ -135,7 +135,7 @@
 		"jest-message-util": "29.6.2",
 		"jest-watch-typeahead": "2.2.2",
 		"json2md": "2.0.1",
-		"lerna": "8.1.9",
+		"lerna": "8.2.1",
 		"lint-staged": "10.0.2",
 		"make-dir": "3.0.0",
 		"mkdirp": "3.0.1",
