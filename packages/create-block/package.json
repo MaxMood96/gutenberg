@@ -48,7 +48,7 @@
 		"make-dir": "^3.0.0",
 		"mustache": "^4.0.0",
 		"npm-package-arg": "^8.1.5",
-		"rimraf": "^5.0.10",
+		"rimraf": "^6.1.1",
 		"write-pkg": "^4.0.0"
 	},
 	"publishConfig": {
