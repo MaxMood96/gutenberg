@@ -38,8 +38,8 @@
 	},
 	"dependencies": {
 		"@babel/eslint-parser": "7.25.7",
-		"@typescript-eslint/eslint-plugin": "^6.4.1",
-		"@typescript-eslint/parser": "^6.4.1",
+		"@typescript-eslint/eslint-plugin": "^8.56.1",
+		"@typescript-eslint/parser": "^8.56.1",
 		"@wordpress/babel-preset-default": "file:../babel-preset-default",
 		"@wordpress/prettier-config": "file:../prettier-config",
 		"@wordpress/theme": "file:../theme",
