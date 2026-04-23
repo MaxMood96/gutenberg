@@ -48,7 +48,7 @@
 		"@wordpress/stylelint-config": "file:../stylelint-config",
 		"adm-zip": "^0.5.9",
 		"babel-jest": "29.7.0",
-		"babel-loader": "9.2.1",
+		"babel-loader": "10.0.0",
 		"browserslist": "^4.21.10",
 		"chalk": "^4.0.0",
 		"check-node-version": "^4.1.0",
