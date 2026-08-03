@@ -82,7 +82,7 @@
 		"@wordpress/env": "file:./packages/env",
 		"@wordpress/eslint-tools": "file:./tools/eslint",
 		"@wordpress/release-tools": "file:./tools/release",
-		"@wordpress/scripts": "file:./packages/scripts",
+		"@wordpress/scripts": "34.0.0",
 		"@wordpress/stylelint-tools": "file:./tools/stylelint",
 		"concurrently": "^9.2.1",
 		"cross-env": "^7.0.3",
